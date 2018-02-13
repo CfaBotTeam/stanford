@@ -153,5 +153,5 @@ with open(basename + '_res.json', 'w') as f:
     all_queries = {'queries': queries}
     f.write(json.dumps(all_queries))
 
-logger.info('Correct response: %.4f(%)' % ((nb_correct / len(queries)) * 100))
+logger.info('Correct response: %.4f' % ((nb_correct / len(queries)) * 100))
 logger.info('Total time: %.2f' % (time.time() - t0))
