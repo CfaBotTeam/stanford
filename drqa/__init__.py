@@ -7,17 +7,27 @@
 
 import os
 import sys
-from pathlib import WindowsPath
+from pathlib import WindowsPath, PosixPath
 
 if sys.version_info < (3, 5):
     raise RuntimeError('DrQA supports Python 3.5 or higher.')
 
-DATA_DIR = (
-    os.getenv('DRQA_DATA') or
-    os.path.join(WindowsPath(__file__).absolute().parents[1].as_posix(), 'data')
-)
+
+def get_data_dir():
+    res = os.getenv('DRQA_DATA')
+    if res:
+        return res
+    if os.name == 'nt':
+        path = WindowsPath(__file__)
+    else:
+        path = PosixPath(__file__)
+    return os.path.join(path.absolute().parents[1].as_posix(), 'data')
+
+
+DATA_DIR = get_data_dir()
 
 from . import tokenizers
 from . import reader
 from . import retriever
 from . import pipeline
+from . import selector

@@ -15,6 +15,7 @@ import logging
 
 from drqa import pipeline
 from drqa.retriever import utils
+from drqa.selector import ChoiceSelector
 
 
 logger = logging.getLogger()
@@ -96,21 +97,14 @@ DrQA = pipeline.DrQA(
     num_workers=args.num_workers,
 )
 
-from drqa import tokenize_text
 
-def score_span(span, answer):
-    s_tokens = DrQA.processes.map_async(tokenize_text, span)
-    a_tokens = DrQA.processes.map_async(tokenize_text, answer)
-    q_tokens = q_tokens.get()
-    s_tokens = s_tokens.get()
-
-    lookup_tensor = torch.LongTensor([word_to_ix["hello"]])
-    DrQA.reader.embedding()
+choice_selector = ChoiceSelector(DrQA)
 
 # ------------------------------------------------------------------------------
 # Read in dataset and make predictions
 # ------------------------------------------------------------------------------
 
+answer2idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 logger.info('Loading queries from %s' % args.dataset)
 with open(args.dataset) as f:
@@ -119,8 +113,11 @@ with open(args.dataset) as f:
     queries = data['queries']
 
 
+nb_correct = 0
 logger.info('Writing results to %s' % args.dataset)
-with open(args.dataset + '.res', 'w') as f:
+filename = os.path.basename(args.dataset)
+basename = os.path.splitext(filename)[0]
+with open(basename + '_res.json', 'w') as f:
     for i_batch in range(0, len(queries), args.predict_batch_size):
         batch = queries[i_batch: i_batch + args.predict_batch_size]
         batch_questions = [data['question'] for data in batch]
@@ -134,17 +131,27 @@ with open(args.dataset + '.res', 'w') as f:
         for i_pred, prediction in enumerate(predictions):
             batch_question = batch[i_pred]
             preds = []
-            for pred in preds:
+            for pred in prediction:
                 span = pred['span']
                 context = pred['context']['text']
                 preds.append({'span': span, 'context': context})
             batch_question['predictions'] = preds
-            # best_answer = None
-            # best_score = -float("inf")
-            # for answer in batch_question['answers']:
-            #     match_score =
+            spans = list(map(lambda x: x['span'], preds))
+            choices = batch_question['choices']
+            choice_index = {choice: i for i, choice in enumerate(choices)}
+            answer = batch_question['answer']
+            answer_index = answer2idx[answer]
+            most_similars = choice_selector.select_most_similar(spans, choices)
+            batch_question['best_matches'] = most_similars
+            selected_choice = most_similars[0]['choice']
+            selected_choice_index = choice_index[selected_choice]
+            is_correct = answer_index == selected_choice_index
+            batch_question['is_correct'] = is_correct
+            if is_correct:
+                nb_correct += 1
 
     all_queries = {'queries': queries}
     f.write(json.dumps(all_queries))
 
+logger.info('Correct response: %.4f(%)' % ((nb_correct / len(queries)) * 100))
 logger.info('Total time: %.2f' % (time.time() - t0))
