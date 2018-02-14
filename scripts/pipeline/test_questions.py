@@ -7,7 +7,6 @@
 """Run predictions using the full DrQA retriever-reader pipeline."""
 
 import torch
-import os
 import time
 import json
 import argparse
@@ -16,6 +15,9 @@ import logging
 from drqa import pipeline
 from drqa.retriever import utils
 from drqa.selector import ChoiceSelector
+import os
+from datetime import datetime
+
 
 
 logger = logging.getLogger()
@@ -24,6 +26,7 @@ fmt = logging.Formatter('%(asctime)s: [ %(message)s ]', '%m/%d/%Y %I:%M:%S %p')
 console = logging.StreamHandler()
 console.setFormatter(fmt)
 logger.addHandler(console)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset', type=str)
@@ -117,7 +120,8 @@ nb_correct = 0
 logger.info('Writing results to %s' % args.dataset)
 filename = os.path.basename(args.dataset)
 basename = os.path.splitext(filename)[0]
-with open(basename + '_res.json', 'w') as f:
+now = datetime.now().strftime("%m_%d_%H_%M")
+with open(now + '_' + basename + '_res.json', 'w') as f:
     for i_batch in range(0, len(queries), args.predict_batch_size):
         batch = queries[i_batch: i_batch + args.predict_batch_size]
         batch_questions = [data['question'] for data in batch]
@@ -153,5 +157,5 @@ with open(basename + '_res.json', 'w') as f:
     all_queries = {'queries': queries}
     f.write(json.dumps(all_queries))
 
-logger.info('Correct response: %.4f' % ((nb_correct / len(queries)) * 100))
+logger.info('Correct response: %.4f(%%)' % ((nb_correct / len(queries)) * 100))
 logger.info('Total time: %.2f' % (time.time() - t0))
