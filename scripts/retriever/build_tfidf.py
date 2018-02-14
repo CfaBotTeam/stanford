@@ -28,8 +28,6 @@ console = logging.StreamHandler()
 console.setFormatter(fmt)
 logger.addHandler(console)
 
-print("Before multiprocessing")
-
 
 # ------------------------------------------------------------------------------
 # Multiprocessing functions
@@ -39,16 +37,13 @@ DOC2IDX = None
 PROCESS_TOK = None
 PROCESS_DB = None
 
-print("Started multiprocessing")
 
 def init(tokenizer_class, db_class, db_opts):
-    print("Entered function init")
     global PROCESS_TOK, PROCESS_DB, DOC2IDX
     PROCESS_TOK = tokenizer_class()
     Finalize(PROCESS_TOK, PROCESS_TOK.shutdown, exitpriority=100)
     PROCESS_DB = db_class(**db_opts)
     Finalize(PROCESS_DB, PROCESS_DB.close, exitpriority=100)
-    print("Exit function init")
 
 
 def fetch_text(doc_id):
@@ -67,27 +62,10 @@ def tokenize(text):
 
 
 def count(ngram, hash_size, newlist,  doc_id):
-    print()
-    print()
-
-    print(ngram)
-    print(hash_size)
-    print(type(newlist))
-    print(doc_id)
-
-    print()
-    print()
-
-
-
     """Fetch the text of a document and compute hashed ngrams counts."""
     #print("Entered function count .............................................................")
     global DOC2IDX
     DOC2IDX=newlist
-    #print("type of DOC2IDX")
-    #print(type(DOC2IDX))
-    #print("---------------------------------------------------")
-
     row, col, data = [], [], []
     # Tokenize
     tokens = tokenize(retriever.utils.normalize(fetch_text(doc_id)))
@@ -104,7 +82,6 @@ def count(ngram, hash_size, newlist,  doc_id):
     row.extend(counts.keys())
     col.extend([DOC2IDX[doc_id]] * len(counts))
     data.extend(counts.values())
-    #print("Exited function count .............................................................")
     return row, col, data
 
 
@@ -114,29 +91,14 @@ def get_count_matrix(args, db, db_opts):
     M[i, j] = # times word i appears in document j.
     """
     # Map doc_ids to indexes
-    #print("Started the function get_count_matrix .................................................................")
     global DOC2IDX
     db_class = retriever.get_class(db)
     with db_class(**db_opts) as doc_db:
         doc_ids = doc_db.get_doc_ids()
     DOC2IDX = {doc_id: i for i, doc_id in enumerate(doc_ids)}
-    #print("****************DOC2IDX*********************")
-    #print(type(DOC2IDX))
-    #print("-----------------------------------------------------")
-
-    #print("***********DOC_IDS*****************")
-    #print(len(doc_ids))   ##3981  = nb de file .json
-    #print("-------------------------------------------------------------------------------------------")
 
     # Setup worker pool
-    #print("Started the worker pool .................................................................")
     tok_class = tokenizers.get_class(args.tokenizer)
-
-    #print("Nb of workers= " + str(args.num_workers))
-    #print("init= ")
-    #print(init)
-    #print("---------------------------------------------------")
-
     workers = ProcessPool(
         args.num_workers,
         initializer=init,
@@ -148,17 +110,6 @@ def get_count_matrix(args, db, db_opts):
     row, col, data = [], [], []
     step = max(int(len(doc_ids) / 10), 1)
     batches = [doc_ids[i:i + step] for i in range(0, len(doc_ids), step)]
-    #print("***********BATCHES*****************")
-    #print(batches)
-    #print("-------------------------------------------------------------------------------------------")
-
-    #print("first function **************************************************")
-    #print(type(args.ngram))
-    #print("*****************************************************************")
-
-
-
-
     _count = partial(count, args.ngram, args.hash_size, DOC2IDX)
     for i, batch in enumerate(batches):
         logger.info('-' * 25 + 'Batch %d/%d' % (i + 1, len(batches)) + '-' * 25)
@@ -229,20 +180,10 @@ if __name__ == '__main__':
                         help='Number of CPU processes (for tokenizing, etc)')
     args = parser.parse_args()
 
-
-
-
-
     logging.info('Counting words...')
-    #print("Started the counting")
     count_matrix, doc_dict = get_count_matrix(
         args, 'sqlite', {'db_path': args.db_path}
     )
-
-    #print("Finished the counting")
-
-
-
 
     logger.info('Making tfidf vectors...')
     tfidf = get_tfidf_matrix(count_matrix)
