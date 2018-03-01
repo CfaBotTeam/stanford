@@ -4,3 +4,4 @@ __pycache__/
 *.npz
 data/reader/*.mdl
 *.jar
+**/__pycache__/
