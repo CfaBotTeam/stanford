@@ -15,11 +15,6 @@ class ChoiceSelector:
         self.processes_ = processes if processes is not None else Pool(processes=1)
 
     def tokenize(self, texts):
-        for text in texts:
-            if text == "":
-                continue
-            continue
-
         result = self.processes_.map_async(tokenize_text, texts)
         return [res.words() for res in result.get()]
 
