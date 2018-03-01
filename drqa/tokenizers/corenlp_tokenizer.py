@@ -15,6 +15,7 @@ import pexpect
 
 from .tokenizer import Tokens, Tokenizer
 from . import DEFAULTS
+import time
 
 
 class CoreNLPTokenizer(Tokenizer):
@@ -76,6 +77,19 @@ class CoreNLPTokenizer(Tokenizer):
             return '}'
         return token
 
+    def tokenize_text(self, text):
+        self.corenlp.sendline(text.encode('utf-8'))
+        self.corenlp.expect_exact('NLP>', searchwindowsize=-1)
+
+        if self.corenlp.before.decode("utf-8") == "ring interactive shell. Type q RETURN or EOF to quit.\r\n":
+            return self.tokenize_text(text)
+
+        # Skip to start of output (may have been stderr logging messages)
+        output = self.corenlp.before
+        start = output.find(b'{"sentences":')
+        output = output[start:].decode('utf-8')
+        return json.loads(output)
+
     def tokenize(self, text):
         # Since we're feeding text to the commandline, we're waiting on seeing
         # the NLP> prompt. Hacky!
@@ -92,13 +106,7 @@ class CoreNLPTokenizer(Tokenizer):
         # Minor cleanup before tokenizing.
         clean_text = text.replace('\n', ' ')
 
-        self.corenlp.sendline(clean_text.encode('utf-8'))
-        self.corenlp.expect_exact('NLP>', searchwindowsize=100)
-
-        # Skip to start of output (may have been stderr logging messages)
-        output = self.corenlp.before
-        start = output.find(b'{"sentences":')
-        output = json.loads(output[start:].decode('utf-8'))
+        output = self.tokenize_text(clean_text)
 
         data = []
         tokens = [t for s in output['sentences'] for t in s['tokens']]

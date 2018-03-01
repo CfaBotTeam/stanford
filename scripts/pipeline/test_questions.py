@@ -100,14 +100,13 @@ DrQA = pipeline.DrQA(
     num_workers=args.num_workers,
 )
 
-
-choice_selector = ChoiceSelector(DrQA)
+reader = DrQA.reader
+choice_selector = ChoiceSelector(reader.word_dict, reader.network.embedding, DrQA.processes)
 
 # ------------------------------------------------------------------------------
 # Read in dataset and make predictions
 # ------------------------------------------------------------------------------
 
-answer2idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 logger.info('Loading queries from %s' % args.dataset)
 with open(args.dataset) as f:
@@ -116,45 +115,59 @@ with open(args.dataset) as f:
     queries = data['queries']
 
 
+answer2idx = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+
+
+def try_match_spans_with_choices(spans, choices, answer):
+    choice_index = {choice: i for i, choice in enumerate(choices)}
+    answer_index = answer2idx[answer]
+    most_similars = choice_selector.select_most_similar(spans, choices)
+    selected_choice = most_similars[0]['choice']
+    selected_choice_index = choice_index[selected_choice]
+    is_correct = answer_index == selected_choice_index
+    return most_similars, is_correct
+
+
 nb_correct = 0
 logger.info('Writing results to %s' % args.dataset)
+
+for i_batch in range(0, len(queries), args.predict_batch_size):
+    batch = queries[i_batch: i_batch + args.predict_batch_size]
+    batch_questions = [data['question'] for data in batch]
+    predictions = DrQA.process_batch(
+        batch_questions,
+        n_docs=args.n_docs,
+        top_n=args.top_n,
+        return_context=True
+    )
+
+    for i_pred, prediction in enumerate(predictions):
+        batch_question = batch[i_pred]
+        preds = []
+        for pred in prediction:
+            span = pred['span']
+            context = pred['context']['text']
+            preds.append({'span': span, 'context': context})
+        batch_question['predictions'] = preds
+        spans = list(map(lambda x: x['span'], preds))
+        spans = [s for s in spans if s]
+        if len(spans) == 0:
+            continue
+
+        choices = batch_question['choices']
+        answer = batch_question['answer']
+        most_similars, is_correct = try_match_spans_with_choices(spans, choices, answer)
+        batch_question['best_matches'] = most_similars
+        batch_question['is_correct'] = is_correct
+        if is_correct:
+            nb_correct += 1
+
+all_queries = {'queries': queries}
+
 filename = os.path.basename(args.dataset)
 basename = os.path.splitext(filename)[0]
 now = datetime.now().strftime("%m_%d_%H_%M")
 with open(now + '_' + basename + '_res.json', 'w') as f:
-    for i_batch in range(0, len(queries), args.predict_batch_size):
-        batch = queries[i_batch: i_batch + args.predict_batch_size]
-        batch_questions = [data['question'] for data in batch]
-        predictions = DrQA.process_batch(
-            batch_questions,
-            n_docs=args.n_docs,
-            top_n=args.top_n,
-            return_context=True
-        )
-
-        for i_pred, prediction in enumerate(predictions):
-            batch_question = batch[i_pred]
-            preds = []
-            for pred in prediction:
-                span = pred['span']
-                context = pred['context']['text']
-                preds.append({'span': span, 'context': context})
-            batch_question['predictions'] = preds
-            spans = list(map(lambda x: x['span'], preds))
-            choices = batch_question['choices']
-            choice_index = {choice: i for i, choice in enumerate(choices)}
-            answer = batch_question['answer']
-            answer_index = answer2idx[answer]
-            most_similars = choice_selector.select_most_similar(spans, choices)
-            batch_question['best_matches'] = most_similars
-            selected_choice = most_similars[0]['choice']
-            selected_choice_index = choice_index[selected_choice]
-            is_correct = answer_index == selected_choice_index
-            batch_question['is_correct'] = is_correct
-            if is_correct:
-                nb_correct += 1
-
-    all_queries = {'queries': queries}
     f.write(json.dumps(all_queries))
 
 logger.info('Correct response: %.4f(%%)' % ((nb_correct / len(queries)) * 100))

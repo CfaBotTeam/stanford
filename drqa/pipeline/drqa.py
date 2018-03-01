@@ -34,10 +34,15 @@ PROCESS_DB = None
 PROCESS_CANDS = None
 
 
-def init(tokenizer_class, tokenizer_opts, db_class, db_opts, candidates=None):
-    global PROCESS_TOK, PROCESS_DB, PROCESS_CANDS
+def init_tokenizer(tokenizer_class, tokenizer_opts):
+    global PROCESS_TOK
     PROCESS_TOK = tokenizer_class(**tokenizer_opts)
     Finalize(PROCESS_TOK, PROCESS_TOK.shutdown, exitpriority=100)
+
+
+def init(tokenizer_class, tokenizer_opts, db_class, db_opts, candidates=None):
+    global PROCESS_DB, PROCESS_CANDS
+    init_tokenizer(tokenizer_class, tokenizer_opts)
     PROCESS_DB = db_class(**db_opts)
     Finalize(PROCESS_DB, PROCESS_DB.close, exitpriority=100)
     PROCESS_CANDS = candidates

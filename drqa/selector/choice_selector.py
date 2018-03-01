@@ -5,17 +5,23 @@ import torch.autograd as autograd
 import torch.nn.functional as F
 import numpy as np
 from drqa.pipeline import tokenize_text
+from multiprocessing import Pool
 
 
 class ChoiceSelector:
-    def __init__(self, drqa):
-        self.word_dict_ = drqa.reader.word_dict
-        self.embedding_ = drqa.reader.network.embedding
-        self.processes_ = drqa.processes
+    def __init__(self, word_dict, embedding, processes=None):
+        self.word_dict_ = word_dict
+        self.embedding_ = embedding
+        self.processes_ = processes if processes is not None else Pool(processes=1)
 
     def tokenize(self, texts):
-        tokens = self.processes_.map_async(tokenize_text, texts).get()
-        return map(lambda x: x.words(), tokens)
+        for text in texts:
+            if text == "":
+                continue
+            continue
+
+        result = self.processes_.map_async(tokenize_text, texts)
+        return [res.words() for res in result.get()]
 
     def get_phrase_embedding(self, tokens):
         lookups = [self.word_dict_[w] for w in tokens]
