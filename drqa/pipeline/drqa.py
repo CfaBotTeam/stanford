@@ -12,6 +12,7 @@ import heapq
 import math
 import time
 import logging
+import re
 
 from multiprocessing import Pool as ProcessPool
 from multiprocessing.util import Finalize
@@ -34,7 +35,7 @@ PROCESS_DB = None
 PROCESS_CANDS = None
 
 
-def init_tokenizer(tokenizer_class, tokenizer_opts):
+def init_tokenizer(tokenizer_class, tokenizer_opts={}):
     global PROCESS_TOK
     PROCESS_TOK = tokenizer_class(**tokenizer_opts)
     Finalize(PROCESS_TOK, PROCESS_TOK.shutdown, exitpriority=100)
@@ -228,6 +229,18 @@ class DrQA(object):
         s_tokens = self.processes.map_async(tokenize_text, flat_splits)
         q_tokens = q_tokens.get()
         s_tokens = s_tokens.get()
+
+        test = list(map(lambda x: x.words(), q_tokens))
+        for i in range(len(queries)):
+            q = queries[i]
+            t = test[i]
+            splitts = re.findall(r"[\w]+", q)
+            if t[0] != splitts[0]:
+                print(q)
+                print(t)
+                print()
+                break
+            # for i in range(5):
 
         # Group into structured example inputs. Examples' ids represent
         # mappings to their question, document, and split ids.

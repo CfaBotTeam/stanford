@@ -15,7 +15,6 @@ import pexpect
 
 from .tokenizer import Tokens, Tokenizer
 from . import DEFAULTS
-import time
 
 
 class CoreNLPTokenizer(Tokenizer):
@@ -81,11 +80,12 @@ class CoreNLPTokenizer(Tokenizer):
         self.corenlp.sendline(text.encode('utf-8'))
         self.corenlp.expect_exact('NLP>', searchwindowsize=-1)
 
-        if self.corenlp.before.decode("utf-8") == "ring interactive shell. Type q RETURN or EOF to quit.\r\n":
+        output = self.corenlp.before
+        # print(str(output))
+        if output.decode("utf-8").endswith("ring interactive shell. Type q RETURN or EOF to quit.\r\n"):
             return self.tokenize_text(text)
 
         # Skip to start of output (may have been stderr logging messages)
-        output = self.corenlp.before
         start = output.find(b'{"sentences":')
         output = output[start:].decode('utf-8')
         return json.loads(output)
@@ -127,4 +127,5 @@ class CoreNLPTokenizer(Tokenizer):
                 tokens[i].get('lemma', None),
                 tokens[i].get('ner', None)
             ))
-        return Tokens(data, self.annotators)
+        tokens = Tokens(data, self.annotators)
+        return tokens

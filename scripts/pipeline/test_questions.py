@@ -129,7 +129,6 @@ def try_match_spans_with_choices(spans, choices, answer):
 
 
 nb_correct = 0
-logger.info('Writing results to %s' % args.dataset)
 
 for i_batch in range(0, len(queries), args.predict_batch_size):
     batch = queries[i_batch: i_batch + args.predict_batch_size]
@@ -145,16 +144,19 @@ for i_batch in range(0, len(queries), args.predict_batch_size):
         batch_question = batch[i_pred]
         preds = []
         for pred in prediction:
-            span = pred['span']
-            context = pred['context']['text']
-            preds.append({'span': span, 'context': context})
+            preds.append({'span': pred['span'], 'context': pred['context']['text'],
+                          'doc_id': pred['doc_id'], 'doc_sore': pred['doc_score'],
+                          'span_score': pred['span_score']})
         batch_question['predictions'] = preds
         spans = list(map(lambda x: x['span'], preds))
         spans = [s for s in spans if s]
         if len(spans) == 0:
+            batch_question['is_correct'] = False
             continue
 
         choices = batch_question['choices']
+        if spans[0] == 'mark' and choices[0] == "loan to the futures trader.":
+            whatever = 1
         answer = batch_question['answer']
         most_similars, is_correct = try_match_spans_with_choices(spans, choices, answer)
         batch_question['best_matches'] = most_similars
@@ -167,8 +169,10 @@ all_queries = {'queries': queries}
 filename = os.path.basename(args.dataset)
 basename = os.path.splitext(filename)[0]
 now = datetime.now().strftime("%m_%d_%H_%M")
-with open(now + '_' + basename + '_res.json', 'w') as f:
-    f.write(json.dumps(all_queries))
+result_filename = now + '_' + basename + '_res.json'
+logger.info('Writing results to %s' % result_filename)
+with open(result_filename, 'w') as f:
+    f.write(json.dumps(all_queries, indent=4, sort_keys=True))
 
 logger.info('Correct response: %.4f(%%)' % ((nb_correct / len(queries)) * 100))
 logger.info('Total time: %.2f' % (time.time() - t0))

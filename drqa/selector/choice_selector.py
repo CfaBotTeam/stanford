@@ -12,7 +12,7 @@ class ChoiceSelector:
     def __init__(self, word_dict, embedding, processes=None):
         self.word_dict_ = word_dict
         self.embedding_ = embedding
-        self.processes_ = processes if processes is not None else Pool(processes=1)
+        self.processes_ = processes if processes is not None else Pool(processes=4)
 
     def tokenize(self, texts):
         result = self.processes_.map_async(tokenize_text, texts)
