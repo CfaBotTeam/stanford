@@ -8,7 +8,10 @@
         "empirical. ",
         "subjective. "
       ],
-      "question": "If an analyst estimates the probability of an event for which there is no historical record, this probability is best  described as:    \t"
+      "question": "If an analyst estimates the probability of an event for which there is no historical record, this probability is best  described as:    \t",
+      "eval":[{"doc":"211", "spans":[{"char_start":"", "char_end":"", "response":""}]},{"doc":"296", "spans":[{"char_start":"", "char_end":"", "response":""}]}]
+
+
     },
     {
       "answer": "A",
@@ -18,7 +21,9 @@
         "value of the security's embedded option. ",
         "effect of changes in interest rates on the value of the security. "
       ],
-      "question": "The option adjusted spread (OAS) is best described as the:    \t"
+      "question": "The option adjusted spread (OAS) is best described as the:    \t",
+      "doc" : "3829",
+      "span" : "###"
     },
     {
       "answer": "A",
@@ -48,7 +53,9 @@
         "cost of retained earnings. ",
         "weighted average cost of capital. "
       ],
-      "question": "A company's optimal capital budget is best described as the amount of new capital required to undertake all projects with an  internal rate of return greater than the:    \t"
+      "question": "A company's optimal capital budget is best described as the amount of new capital required to undertake all projects with an  internal rate of return greater than the:    \t",
+      "doc":"3049",
+      "span":"###"
     },
     {
       "answer": "A",
