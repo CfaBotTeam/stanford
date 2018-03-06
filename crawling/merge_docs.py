@@ -7,8 +7,8 @@ if __name__ == '__main__':
         json_invest = json.loads(invest_red)
         docs_red = f_docs.read()
         json_docs = json.loads(docs_red)
-        json_invest['docs'] = json_invest['docs'] + json_docs
+        all_docs = json_invest['docs'] + json_docs
 
     with open('all_data_collected.json', 'w') as f_docs:
-        to_write = json.dumps(json_invest)
+        to_write = json.dumps(all_docs)
         f_docs.write(to_write)
