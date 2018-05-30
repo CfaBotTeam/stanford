@@ -31,3 +31,4 @@ from . import reader
 from . import retriever
 from . import pipeline
 from . import selector
+from . import utils

@@ -15,6 +15,7 @@ import logging
 from drqa import pipeline
 from drqa.retriever import utils
 from drqa.selector import ChoiceSelector
+from drqa.utils import CfaEncoder
 import os
 from datetime import datetime
 
@@ -172,7 +173,7 @@ now = datetime.now().strftime("%m_%d_%H_%M")
 result_filename = now + '_' + basename + '_res.json'
 logger.info('Writing results to %s' % result_filename)
 with open(result_filename, 'w') as f:
-    f.write(json.dumps(all_queries, indent=4, sort_keys=True))
+    f.write(json.dumps(all_queries, indent=4, sort_keys=True, cls=CfaEncoder))
 
 logger.info('Correct response: %.4f(%%)' % ((nb_correct / len(queries)) * 100))
 logger.info('Total time: %.2f' % (time.time() - t0))
